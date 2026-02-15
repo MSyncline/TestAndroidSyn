@@ -4,7 +4,11 @@
       "Bash(xargs cat:*)",
       "Bash(./gradlew:*)",
       "mcp__ide__getDiagnostics",
-      "Bash(gh auth status:*)"
+      "Bash(gh auth status:*)",
+      "Bash(git -C /Users/matthewroberts/development/projects/TestAndroid remote -v)",
+      "Bash(ssh:*)",
+      "Bash(git -C /Users/matthewroberts/development/projects/TestAndroid remote set-url:*)",
+      "Bash(git -C /Users/matthewroberts/development/projects/TestAndroid push -u origin main)"
     ]
   }
 }
