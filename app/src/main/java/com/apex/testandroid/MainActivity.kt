@@ -32,7 +32,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             TestAndroidTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    GroceryListScreen(
+                    MapScreen(
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
