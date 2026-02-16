@@ -1,0 +1,78 @@
+name: Android Build
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'android-build-client/CodeFlow/**'
+      - '.github/workflows/android.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'android-build-client/CodeFlow/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: [self-hosted, macOS, android]
+    environment: CodeFlowProd
+
+    defaults:
+      run:
+        working-directory: android-build-client/CodeFlow
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x ./gradlew
+
+    - name: Build Debug APK
+      env:
+        PAT_GITHUB_TOKEN_CODE_FLOW: ${{ secrets.PAT_GITHUB_TOKEN_CODE_FLOW }}
+      run: ./gradlew assembleDebug
+
+#    - name: Upload Debug APK
+#      uses: actions/upload-artifact@v4
+#      with:
+#        name: app-debug
+#        path: android-build-client/CodeFlow/app/build/outputs/apk/debug/app-debug.apk
+#        retention-days: 1
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+    - name: Upload APK to S3
+      id: s3_upload
+      run: |
+        TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+        APP_NAME="${{ github.event.repository.name }}"
+        S3_KEY="builds/app-debug_${APP_NAME}_${TIMESTAMP}.apk"
+        aws s3 cp app/build/outputs/apk/debug/app-debug.apk \
+          s3://${{ vars.S3_BUCKET }}/${S3_KEY}
+        echo "s3_url=s3://${{ vars.S3_BUCKET }}/${S3_KEY}" >> $GITHUB_OUTPUT
+        echo "s3_key=${S3_KEY}" >> $GITHUB_OUTPUT
+
+    - name: Notify Relay Server
+      if: success()
+      run: |
+        curl -X POST "${{ vars.RELAY_SERVER_URL }}/webhook/github" \
+          -H "Content-Type: application/json" \
+          -H "X-GitHub-Event: build_artifact" \
+          -d '{
+            "event": "build_artifact",
+            "s3_url": "${{ steps.s3_upload.outputs.s3_url }}",
+            "s3_key": "${{ steps.s3_upload.outputs.s3_key }}",
+            "bucket": "${{ vars.S3_BUCKET }}",
+            "repo": "${{ github.repository }}",
+            "branch": "${{ github.ref_name }}",
+            "commit": "${{ github.sha }}",
+            "run_id": "${{ github.run_id }}",
+            "workflow": "${{ github.workflow }}"
+          }'
