@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.apex.testandroid"
+    namespace = "com.msyncline.testandroid"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.apex.testandroid"
+        applicationId = "com.msyncline.testandroid"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
