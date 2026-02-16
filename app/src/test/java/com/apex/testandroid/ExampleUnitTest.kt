@@ -12,6 +12,10 @@ import org.junit.Assert.*
 class ExampleUnitTest {
     @Test
     fun addition_isCorrect() {
-        assertEquals(4, 2 + 2)
+        println("ExampleUnitTest: Starting addition_isCorrect test")
+        val result = 2 + 2
+        println("ExampleUnitTest: 2 + 2 = $result")
+        assertEquals(4, result)
+        println("ExampleUnitTest: Test passed successfully")
     }
 }
