@@ -3,24 +3,14 @@ name: Android Build
 on:
   push:
     branches: [ main, master ]
-    paths:
-      - 'android-build-client/CodeFlow/**'
-      - '.github/workflows/android.yml'
   pull_request:
     branches: [ main, master ]
-    paths:
-      - 'android-build-client/CodeFlow/**'
-      - '.github/workflows/android.yml'
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: [self-hosted, macOS, android]
     environment: CodeFlowProd
-
-    defaults:
-      run:
-        working-directory: android-build-client/CodeFlow
 
     steps:
     - name: Checkout code
