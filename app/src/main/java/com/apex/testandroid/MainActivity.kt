@@ -1,23 +1,30 @@
 package com.apex.testandroid
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.apex.testandroid.service.TrackingService
+import com.apex.testandroid.ui.RouteDetailScreen
+import com.apex.testandroid.ui.RouteListScreen
+import com.apex.testandroid.ui.TrackingScreen
 import com.apex.testandroid.ui.theme.TestAndroidTheme
+import com.apex.testandroid.viewmodel.Screen
+import com.apex.testandroid.viewmodel.TrackingViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -25,120 +32,100 @@ class MainActivity : ComponentActivity() {
         private const val TAG = "MainActivity"
     }
 
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
+        val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (fineGranted || coarseGranted) {
+            Log.d(TAG, "Location permission granted")
+            startTrackingService()
+        } else {
+            Log.w(TAG, "Location permission denied")
+        }
+    }
+
+    private var pendingViewModel: TrackingViewModel? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "Test log: MainActivity onCreate called")
         enableEdgeToEdge()
         setContent {
             TestAndroidTheme {
+                val vm: TrackingViewModel = viewModel()
+                val currentScreen by vm.currentScreen.collectAsState()
+                val routes by vm.routes.collectAsState()
+                val pointCount by vm.livePointCount.collectAsState()
+                val selectedRoute by vm.selectedRoute.collectAsState()
+                val selectedPoints by vm.selectedRoutePoints.collectAsState()
+
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    MapScreen(
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            }
-        }
-    }
-}
+                    when (currentScreen) {
+                        Screen.RouteList -> RouteListScreen(
+                            routes = routes,
+                            onStartTracking = {
+                                pendingViewModel = vm
+                                requestLocationAndStart(vm)
+                            },
+                            onRouteClick = { routeId -> vm.selectRoute(routeId) },
+                            onDeleteRoute = { routeId -> vm.deleteRoute(routeId) },
+                            modifier = Modifier.padding(innerPadding)
+                        )
 
-@Composable
-fun GroceryListScreen(modifier: Modifier = Modifier) {
-    var groceryItems by remember { mutableStateOf(listOf<String>()) }
-    var newItemText by remember { mutableStateOf("") }
+                        Screen.Tracking -> TrackingScreen(
+                            pointCount = pointCount,
+                            onStopTracking = {
+                                stopTrackingService()
+                                vm.onTrackingStopped()
+                            },
+                            modifier = Modifier.padding(innerPadding)
+                        )
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Grocery List",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = newItemText,
-                onValueChange = { newItemText = it },
-                label = { Text("Add item") },
-                modifier = Modifier.weight(1f),
-                singleLine = true
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            FloatingActionButton(
-                onClick = {
-                    if (newItemText.isNotBlank()) {
-                        groceryItems = groceryItems + newItemText
-                        newItemText = ""
+                        Screen.RouteDetail -> RouteDetailScreen(
+                            route = selectedRoute,
+                            points = selectedPoints,
+                            onBack = { vm.navigateTo(Screen.RouteList) },
+                            modifier = Modifier.padding(innerPadding)
+                        )
                     }
                 }
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = "Add item")
             }
         }
+    }
 
-        if (groceryItems.isEmpty()) {
-            Text(
-                text = "No items yet. Add your first grocery item!",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 32.dp)
-            )
+    private fun requestLocationAndStart(vm: TrackingViewModel) {
+        val fineLocation = ContextCompat.checkSelfPermission(
+            this, Manifest.permission.ACCESS_FINE_LOCATION
+        )
+        if (fineLocation == PackageManager.PERMISSION_GRANTED) {
+            startTrackingService()
+            vm.onTrackingStarted()
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(groceryItems) { item ->
-                    GroceryListItem(
-                        item = item,
-                        onDelete = { groceryItems = groceryItems - item }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun GroceryListItem(item: String, onDelete: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = item,
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.weight(1f)
+            val permissions = mutableListOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
             )
-            IconButton(onClick = onDelete) {
-                Icon(
-                    Icons.Filled.Delete,
-                    contentDescription = "Delete item",
-                    tint = MaterialTheme.colorScheme.error
-                )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                permissions.add(Manifest.permission.POST_NOTIFICATIONS)
             }
+            locationPermissionLauncher.launch(permissions.toTypedArray())
         }
     }
-}
 
-@Preview(showBackground = true)
-@Composable
-fun GroceryListPreview() {
-    TestAndroidTheme {
-        GroceryListScreen()
+    private fun startTrackingService() {
+        val intent = Intent(this, TrackingService::class.java).apply {
+            action = TrackingService.ACTION_START
+        }
+        ContextCompat.startForegroundService(this, intent)
+        pendingViewModel?.onTrackingStarted()
+        pendingViewModel = null
+    }
+
+    private fun stopTrackingService() {
+        val intent = Intent(this, TrackingService::class.java).apply {
+            action = TrackingService.ACTION_STOP
+        }
+        startService(intent)
     }
 }
