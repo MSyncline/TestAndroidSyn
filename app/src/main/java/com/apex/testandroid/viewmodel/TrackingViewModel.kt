@@ -40,6 +40,8 @@ class TrackingViewModel(application: Application) : AndroidViewModel(application
 
     val livePointCount: StateFlow<Int> = TrackingService.pointCount
 
+    val liveTrackingPoints: StateFlow<List<Pair<Double, Double>>> = TrackingService.livePoints
+
     val selectedRoutePoints: StateFlow<List<RoutePoint>> = _selectedRouteId
         .flatMapLatest { id ->
             if (id != null) dao.getPointsForRoute(id) else flowOf(emptyList())

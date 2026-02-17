@@ -45,6 +45,9 @@ class TrackingService : Service() {
 
         private val _isTracking = MutableStateFlow(false)
         val isTracking: StateFlow<Boolean> = _isTracking
+
+        private val _livePoints = MutableStateFlow<List<Pair<Double, Double>>>(emptyList())
+        val livePoints: StateFlow<List<Pair<Double, Double>>> = _livePoints
     }
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -68,6 +71,7 @@ class TrackingService : Service() {
                         )
                         AppDatabase.getInstance(applicationContext).routeDao().insertPoint(point)
                         _pointCount.value = _pointCount.value + 1
+                        _livePoints.value = _livePoints.value + Pair(location.latitude, location.longitude)
                         Log.d(TAG, "Point recorded: ${location.latitude}, ${location.longitude}")
                     }
                 }
@@ -92,6 +96,7 @@ class TrackingService : Service() {
             routeId = AppDatabase.getInstance(applicationContext).routeDao().insertRoute(route)
             _currentRouteId.value = routeId
             _pointCount.value = 0
+            _livePoints.value = emptyList()
             _isTracking.value = true
             Log.d(TAG, "Tracking started, routeId=$routeId")
         }

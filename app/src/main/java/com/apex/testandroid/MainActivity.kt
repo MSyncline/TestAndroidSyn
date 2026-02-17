@@ -59,6 +59,7 @@ class MainActivity : ComponentActivity() {
                 val pointCount by vm.livePointCount.collectAsState()
                 val selectedRoute by vm.selectedRoute.collectAsState()
                 val selectedPoints by vm.selectedRoutePoints.collectAsState()
+                val trackPoints by vm.liveTrackingPoints.collectAsState()
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     when (currentScreen) {
@@ -75,6 +76,7 @@ class MainActivity : ComponentActivity() {
 
                         Screen.Tracking -> TrackingScreen(
                             pointCount = pointCount,
+                            trackPoints = trackPoints,
                             onStopTracking = {
                                 stopTrackingService()
                                 vm.onTrackingStopped()
