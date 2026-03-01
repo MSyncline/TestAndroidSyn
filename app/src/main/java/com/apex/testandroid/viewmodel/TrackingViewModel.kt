@@ -66,7 +66,7 @@ class TrackingViewModel(application: Application) : AndroidViewModel(application
         _selectedRouteId.value = routeId
         viewModelScope.launch {
             _selectedRoute.value = dao.getRouteById(routeId)
-            Log.d(TAG, "Test log: Route loaded: ${_selectedRoute.value?.let { "id=${it.id}, points=${it.totalPoints}" } ?: "null"}")
+            Log.d(TAG, "Test log: Route loaded: ${_selectedRoute.value?.let { "id=${it.id}" } ?: "null"}")
         }
         _currentScreen.value = Screen.RouteDetail
     }
