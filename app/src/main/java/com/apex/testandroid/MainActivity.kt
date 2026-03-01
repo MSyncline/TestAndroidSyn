@@ -49,7 +49,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.d(TAG, "Test log: MainActivity onCreate called at ${System.currentTimeMillis()}")
         enableEdgeToEdge()
         setContent {
             TestAndroidTheme {
@@ -116,7 +115,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startTrackingService() {
-        Log.d(TAG, "Test log: Starting tracking service")
         val intent = Intent(this, TrackingService::class.java).apply {
             action = TrackingService.ACTION_START
         }
@@ -126,7 +124,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun stopTrackingService() {
-        Log.d(TAG, "Test log: Stopping tracking service")
         val intent = Intent(this, TrackingService::class.java).apply {
             action = TrackingService.ACTION_STOP
         }
