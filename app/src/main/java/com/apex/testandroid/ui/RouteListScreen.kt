@@ -214,12 +214,15 @@ private fun RouteOverviewMap(
 
 @Composable
 private fun rememberMapViewWithLifecycle(context: Context): MapView {
-    val mapView = remember {
+    // Initialize OSMDroid configuration once, outside the remember block
+    LaunchedEffect(Unit) {
         Configuration.getInstance().load(
             context,
             context.getSharedPreferences("osmdroid", Context.MODE_PRIVATE)
         )
+    }
 
+    val mapView = remember {
         MapView(context).apply {
             setTileSource(TileSourceFactory.MAPNIK)
             setMultiTouchControls(true)
