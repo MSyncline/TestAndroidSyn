@@ -1,11 +1,15 @@
 package com.apex.testandroid.ui
 
+import android.content.Context
+import android.graphics.Color
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,10 +25,21 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.apex.testandroid.data.Route
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.BoundingBox
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Polyline
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -48,31 +63,46 @@ fun RouteListScreen(
             modifier = modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(16.dp)
         ) {
-            Text(
-                text = "Saved Routes",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+            // Map view at the top
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(250.dp)
+            ) {
+                RouteOverviewMap(routes = routes)
+            }
 
-            if (routes.isEmpty()) {
+            // Routes list below
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
                 Text(
-                    text = "No routes recorded yet. Tap the play button to start tracking!",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 32.dp)
+                    text = "Saved Routes",
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(routes) { route ->
-                        RouteCard(
-                            route = route,
-                            onClick = { onRouteClick(route.id) },
-                            onDelete = { onDeleteRoute(route.id) }
-                        )
+
+                if (routes.isEmpty()) {
+                    Text(
+                        text = "No routes recorded yet. Tap the play button to start tracking!",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 32.dp)
+                    )
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(routes) { route ->
+                            RouteCard(
+                                route = route,
+                                onClick = { onRouteClick(route.id) },
+                                onDelete = { onDeleteRoute(route.id) }
+                            )
+                        }
                     }
                 }
             }
@@ -139,4 +169,51 @@ private fun RouteCard(
             }
         }
     }
+}
+
+@Composable
+private fun RouteOverviewMap(
+    routes: List<Route>,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val mapView = rememberMapViewWithLifecycle(context)
+
+    LaunchedEffect(Unit) {
+        if (routes.isEmpty()) {
+            // Default view - center on a default location
+            val defaultLocation = GeoPoint(37.7749, -122.4194) // San Francisco
+            mapView.controller.setCenter(defaultLocation)
+            mapView.controller.setZoom(10.0)
+        }
+    }
+
+    AndroidView(
+        factory = { mapView },
+        modifier = modifier.fillMaxSize()
+    )
+}
+
+@Composable
+private fun rememberMapViewWithLifecycle(context: Context): MapView {
+    val mapView = remember {
+        Configuration.getInstance().load(
+            context,
+            context.getSharedPreferences("osmdroid", Context.MODE_PRIVATE)
+        )
+
+        MapView(context).apply {
+            setTileSource(TileSourceFactory.MAPNIK)
+            setMultiTouchControls(true)
+            controller.setZoom(12.0)
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            mapView.onDetach()
+        }
+    }
+
+    return mapView
 }
