@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    runs-on: [self-hosted, macOS, android]
+    runs-on: [ubuntu-latest]
     environment: CodeFlowProd
 
     steps:
