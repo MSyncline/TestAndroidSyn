@@ -1,6 +1,7 @@
 package com.apex.testandroid.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.apex.testandroid.data.AppDatabase
@@ -22,6 +23,10 @@ enum class Screen {
 }
 
 class TrackingViewModel(application: Application) : AndroidViewModel(application) {
+
+    companion object {
+        private const val TAG = "TrackingViewModel"
+    }
 
     private val dao = AppDatabase.getInstance(application).routeDao()
 
@@ -52,28 +57,35 @@ class TrackingViewModel(application: Application) : AndroidViewModel(application
     val selectedRoute: StateFlow<Route?> = _selectedRoute
 
     fun navigateTo(screen: Screen) {
+        Log.d(TAG, "Test log: Navigating to screen: $screen")
         _currentScreen.value = screen
     }
 
     fun selectRoute(routeId: Long) {
+        Log.d(TAG, "Test log: Selecting route with ID: $routeId")
         _selectedRouteId.value = routeId
         viewModelScope.launch {
             _selectedRoute.value = dao.getRouteById(routeId)
+            Log.d(TAG, "Test log: Route loaded: ${_selectedRoute.value?.let { "id=${it.id}, points=${it.totalPoints}" } ?: "null"}")
         }
         _currentScreen.value = Screen.RouteDetail
     }
 
     fun deleteRoute(routeId: Long) {
+        Log.d(TAG, "Test log: Deleting route with ID: $routeId")
         viewModelScope.launch {
             dao.deleteRoute(routeId)
+            Log.d(TAG, "Test log: Route deleted successfully")
         }
     }
 
     fun onTrackingStarted() {
+        Log.d(TAG, "Test log: Tracking started, navigating to Tracking screen")
         _currentScreen.value = Screen.Tracking
     }
 
     fun onTrackingStopped() {
+        Log.d(TAG, "Test log: Tracking stopped, navigating to RouteList screen")
         _currentScreen.value = Screen.RouteList
     }
 }
