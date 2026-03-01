@@ -19,7 +19,8 @@ import kotlinx.coroutines.launch
 enum class Screen {
     RouteList,
     Tracking,
-    RouteDetail
+    RouteDetail,
+    Settings
 }
 
 class TrackingViewModel(application: Application) : AndroidViewModel(application) {

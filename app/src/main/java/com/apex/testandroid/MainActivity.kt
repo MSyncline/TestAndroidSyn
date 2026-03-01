@@ -21,6 +21,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.apex.testandroid.service.TrackingService
 import com.apex.testandroid.ui.RouteDetailScreen
 import com.apex.testandroid.ui.RouteListScreen
+import com.apex.testandroid.ui.SettingsScreen
 import com.apex.testandroid.ui.TrackingScreen
 import com.apex.testandroid.ui.theme.TestAndroidTheme
 import com.apex.testandroid.viewmodel.Screen
@@ -70,6 +71,7 @@ class MainActivity : ComponentActivity() {
                             },
                             onRouteClick = { routeId -> vm.selectRoute(routeId) },
                             onDeleteRoute = { routeId -> vm.deleteRoute(routeId) },
+                            onOpenSettings = { vm.navigateTo(Screen.Settings) },
                             modifier = Modifier.padding(innerPadding)
                         )
 
@@ -86,6 +88,11 @@ class MainActivity : ComponentActivity() {
                         Screen.RouteDetail -> RouteDetailScreen(
                             route = selectedRoute,
                             points = selectedPoints,
+                            onBack = { vm.navigateTo(Screen.RouteList) },
+                            modifier = Modifier.padding(innerPadding)
+                        )
+
+                        Screen.Settings -> SettingsScreen(
                             onBack = { vm.navigateTo(Screen.RouteList) },
                             modifier = Modifier.padding(innerPadding)
                         )
