@@ -10,7 +10,6 @@ on:
 jobs:
   build:
     runs-on: [self-hosted, macOS, android]
-    environment: CodeFlowProd
 
     steps:
     - name: Checkout code
@@ -49,7 +48,7 @@ jobs:
         echo "s3_url=s3://${{ vars.S3_BUCKET }}/${S3_KEY}" >> $GITHUB_OUTPUT
         echo "s3_key=${S3_KEY}" >> $GITHUB_OUTPUT
 
-    - name: Notify Relay Server
+    - name: Notify Relay Server - Success
       if: success()
       run: |
         curl -X POST "${{ vars.RELAY_SERVER_URL }}/webhook/github" \
@@ -65,4 +64,20 @@ jobs:
             "commit": "${{ github.sha }}",
             "run_id": "${{ github.run_id }}",
             "workflow": "${{ github.workflow }}"
+          }'
+
+    - name: Notify Relay Server - Failure
+      if: failure()
+      run: |
+        curl -X POST "${{ vars.RELAY_SERVER_URL }}/webhook/github" \
+          -H "Content-Type: application/json" \
+          -H "X-GitHub-Event: build_failure" \
+          -d '{
+            "event": "build_failure",
+            "repo": "${{ github.repository }}",
+            "branch": "${{ github.ref_name }}",
+            "commit": "${{ github.sha }}",
+            "run_id": "${{ github.run_id }}",
+            "workflow": "${{ github.workflow }}",
+            "run_url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           }'
